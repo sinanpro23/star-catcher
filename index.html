@@ -1,0 +1,156 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Star Catcher</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      background: #101638;
+      color: white;
+      text-align: center;
+      font-family: Arial;
+    }
+
+    canvas {
+      background: linear-gradient(#17245c, #542b78);
+      border: 3px solid white;
+      border-radius: 12px;
+      max-width: 95%;
+      touch-action: none;
+    }
+
+    button {
+      padding: 12px 25px;
+      font-size: 18px;
+      background: gold;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>⭐ STAR CATCHER ⭐</h1>
+<h3 id="info">Score: 0 | Lives: 3 | Time: 30</h3>
+
+<canvas id="game" width="360" height="500"></canvas>
+
+<br><br>
+<button onclick="startGame()">START GAME</button>
+
+<p>Use ← → keys or touch the screen!</p>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const info = document.getElementById("info");
+
+let basket, objects, score, lives, time;
+let playing = false;
+let lastTime = 0;
+let spawnTime = 0;
+let startTime = 0;
+
+function startGame() {
+  basket = { x: 150, y: 455, w: 65, h: 25 };
+  objects = [];
+  score = 0;
+  lives = 3;
+  time = 30;
+  spawnTime = 0;
+  startTime = Date.now();
+  lastTime = 0;
+  playing = true;
+  requestAnimationFrame(loop);
+}
+
+function moveBasket(x) {
+  basket.x = Math.max(0, Math.min(295, x - basket.w / 2));
+}
+
+document.addEventListener("keydown", e => {
+  if (!playing) return;
+  if (e.key === "ArrowLeft") basket.x -= 25;
+  if (e.key === "ArrowRight") basket.x += 25;
+  basket.x = Math.max(0, Math.min(295, basket.x));
+});
+
+canvas.addEventListener("pointermove", e => {
+  if (!playing) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * 360 / rect.width;
+  moveBasket(x);
+});
+
+function loop(timestamp) {
+  if (!playing) return;
+
+  let delta = lastTime ? Math.min((timestamp - lastTime) / 1000, 0.05) : 0;
+  lastTime = timestamp;
+
+  time = Math.max(0, 30 - Math.floor((Date.now() - startTime) / 1000));
+
+  spawnTime += delta;
+  if (spawnTime > 0.65) {
+    spawnTime = 0;
+    objects.push({
+      x: Math.random() * 330 + 10,
+      y: -20,
+      speed: 130 + Math.random() * 100,
+      type: Math.random() < 0.75 ? "⭐" : "💧"
+    });
+  }
+
+  ctx.clearRect(0, 0, 360, 500);
+
+  // Draw basket
+  ctx.font = "45px Arial";
+  ctx.fillText("🧺", basket.x, basket.y + 25);
+
+  // Move and draw objects
+  for (let i = objects.length - 1; i >= 0; i--) {
+    let o = objects[i];
+    o.y += o.speed * delta;
+
+    ctx.font = "25px Arial";
+    ctx.fillText(o.type, o.x, o.y);
+
+    if (
+      o.y > 425 &&
+      o.y < 490 &&
+      o.x > basket.x &&
+      o.x < basket.x + basket.w
+    ) {
+      if (o.type === "⭐") score += 10;
+      else lives--;
+
+      objects.splice(i, 1);
+    } else if (o.y > 510) {
+      objects.splice(i, 1);
+    }
+  }
+
+  info.innerText =
+    "Score: " + score +
+    " | Lives: " + lives +
+    " | Time: " + time;
+
+  if (lives <= 0 || time <= 0) {
+    playing = false;
+    ctx.font = "28px Arial";
+    ctx.fillStyle = "white";
+    ctx.fillText("GAME OVER!", 90, 230);
+    ctx.font = "20px Arial";
+    ctx.fillText("Your Score: " + score, 105, 270);
+    return;
+  }
+
+  requestAnimationFrame(loop);
+}
+</script>
+
+</body>
+</html>
